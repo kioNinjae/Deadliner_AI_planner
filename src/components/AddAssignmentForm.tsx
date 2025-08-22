@@ -57,12 +57,12 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
 
   if (!isOpen) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 animate-fadeInUp hover:shadow-md transition-all duration-300">
         <button
           onClick={() => setIsOpen(true)}
-          className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors group"
+          className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 group transform hover:scale-[1.02]"
         >
-          <Plus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+          <Plus className="w-5 h-5 mr-2 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300" />
           Add New Assignment, Exam, or Project
         </button>
       </div>
@@ -70,12 +70,15 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 animate-slideInRight">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Add New Assignment</h3>
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 animate-pulse"></span>
+          Add New Assignment
+        </h3>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-gray-400 hover:text-red-500 transition-all duration-300 hover:scale-110 hover:rotate-90"
         >
           <X className="w-5 h-5" />
         </button>
@@ -91,7 +94,7 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-blue-300 hover:shadow-md"
               placeholder="e.g., Math Midterm, History Essay"
               required
             />
@@ -105,7 +108,7 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
               type="text"
               value={formData.subject}
               onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-blue-300 hover:shadow-md"
               placeholder="e.g., Mathematics, History"
               required
             />
@@ -147,13 +150,13 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
                   key={priority}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, priority }))}
-                  className={`px-3 py-2 rounded-lg border transition-all ${
+                  className={`px-3 py-2 rounded-lg border transition-all duration-300 transform hover:scale-105 ${
                     formData.priority === priority
-                      ? priorityColors[priority]
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? `${priorityColors[priority]} shadow-md`
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
                   }`}
                 >
-                  {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  <Icon className="w-4 h-4 mr-1 transition-transform duration-300 hover:scale-110" />
                 </button>
               ))}
             </div>
@@ -164,12 +167,12 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
               Due Date *
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 transition-colors duration-300 peer-focus:text-blue-500" />
               <input
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-blue-300 hover:shadow-md peer"
                 required
               />
             </div>
@@ -180,7 +183,7 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
               Estimated Hours
             </label>
             <div className="relative">
-              <Clock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <Clock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 transition-colors duration-300 peer-focus:text-blue-500" />
               <input
                 type="number"
                 min="0.5"
@@ -188,7 +191,7 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
                 step="0.5"
                 value={formData.estimatedHours}
                 onChange={(e) => setFormData(prev => ({ ...prev, estimatedHours: parseFloat(e.target.value) }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-blue-300 hover:shadow-md peer"
               />
             </div>
           </div>
@@ -202,7 +205,7 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-300 hover:border-blue-300 hover:shadow-md"
             placeholder="Add any additional details or requirements..."
           />
         </div>
@@ -211,16 +214,23 @@ export const AddAssignmentForm: React.FC<AddAssignmentFormProps> = ({ onAdd, loa
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-300 transform hover:scale-105"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-lg"
           >
-            {loading ? 'Creating...' : 'Create Assignment'}
+            {loading ? (
+              <span className="flex items-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Creating...
+              </span>
+            ) : (
+              'Create Assignment'
+            )}
           </button>
         </div>
       </form>
