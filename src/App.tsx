@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Target } from 'lucide-react';
 import { Header } from './components/Header';
 import { StatsCard } from './components/StatsCard';
 import { AddAssignmentForm } from './components/AddAssignmentForm';
