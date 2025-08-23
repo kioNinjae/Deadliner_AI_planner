@@ -5,14 +5,22 @@ import { AddAssignmentForm } from './components/AddAssignmentForm';
 import { DailyPlan } from './components/DailyPlan';
 import { UpcomingTasks } from './components/UpcomingTasks';
 import { SettingsModal } from './components/SettingsModal';
+import { TaskTimer } from './components/TaskTimer';
+import { TaskSelector } from './components/TaskSelector';
+import { WalletDashboard } from './components/WalletDashboard';
 import { useDeadliner } from './hooks/useDeadliner';
+import { Task } from './types';
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | undefined>();
+  const [showCelebration, setShowCelebration] = useState(false);
   const {
     assignments,
     tasks,
     profile,
+    timerSessions,
+    wallet,
     loading,
     addAssignment,
     completeTask,
@@ -21,11 +29,26 @@ function App() {
     getUpcomingTasks,
     getStats,
     updateProfile,
-    exportSchedule
+    exportSchedule,
+    addTimerSession,
+    addPoints,
+    redeemReward
   } = useDeadliner();
 
   const stats = getStats();
   const upcomingTasks = getUpcomingTasks();
+
+  const handleSessionComplete = (session: any) => {
+    addTimerSession(session);
+    if (session.pointsEarned > 0) {
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 3000);
+    }
+  };
+
+  const handlePointsEarned = (points: number) => {
+    addPoints(points);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
@@ -41,6 +64,27 @@ function App() {
           onAdd={addAssignment}
           loading={loading}
         />
+        
+        {/* Timer and Wallet Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 animate-slideInRight">
+          <TaskSelector
+            tasks={tasks}
+            selectedTask={selectedTask}
+            onSelectTask={setSelectedTask}
+          />
+          
+          <TaskTimer
+            selectedTask={selectedTask}
+            onSessionComplete={handleSessionComplete}
+            onPointsEarned={handlePointsEarned}
+          />
+          
+          <WalletDashboard
+            wallet={wallet}
+            sessions={timerSessions}
+            onRedeemReward={redeemReward}
+          />
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slideInRight">
           <DailyPlan
@@ -135,6 +179,19 @@ function App() {
         profile={profile}
         onUpdateProfile={updateProfile}
       />
+
+      {/* Celebration Modal */}
+      {showCelebration && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full shadow-2xl animate-bounce-gentle transform scale-110">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl animate-spin">🎉</span>
+              <span className="font-bold text-lg">Points Earned!</span>
+              <span className="text-2xl animate-spin">🎉</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,12 @@
 import { Assignment, Task, StudyProfile } from '../types';
+import { TimerSession, UserWallet, RewardRedemption } from '../types';
 
 const STORAGE_KEYS = {
   ASSIGNMENTS: 'deadliner_assignments',
   TASKS: 'deadliner_tasks',
-  PROFILE: 'deadliner_profile'
+  PROFILE: 'deadliner_profile',
+  TIMER_SESSIONS: 'deadliner_timer_sessions',
+  WALLET: 'deadliner_wallet'
 };
 
 export class Storage {
@@ -36,6 +39,30 @@ export class Storage {
       preferredStudyTimes: ['morning', 'evening'],
       subjects: ['Math', 'Science', 'History', 'English'],
       studyStyle: 'distributed'
+    };
+  }
+
+  static saveTimerSessions(sessions: TimerSession[]): void {
+    localStorage.setItem(STORAGE_KEYS.TIMER_SESSIONS, JSON.stringify(sessions));
+  }
+
+  static getTimerSessions(): TimerSession[] {
+    const data = localStorage.getItem(STORAGE_KEYS.TIMER_SESSIONS);
+    return data ? JSON.parse(data) : [];
+  }
+
+  static saveWallet(wallet: UserWallet): void {
+    localStorage.setItem(STORAGE_KEYS.WALLET, JSON.stringify(wallet));
+  }
+
+  static getWallet(): UserWallet {
+    const data = localStorage.getItem(STORAGE_KEYS.WALLET);
+    return data ? JSON.parse(data) : {
+      totalPoints: 0,
+      totalEarnings: 0,
+      sessionsCompleted: 0,
+      totalStudyTime: 0,
+      rewardsRedeemed: []
     };
   }
 

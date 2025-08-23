@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Assignment, Task, StudyProfile, DayPlan } from '../types';
+import { Assignment, Task, StudyProfile, DayPlan, TimerSession, UserWallet, RewardTier } from '../types';
 import { AIScheduler } from '../utils/aiScheduler';
 import { Storage } from '../utils/storage';
 
@@ -7,13 +7,19 @@ export const useDeadliner = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [profile, setProfile] = useState<StudyProfile>(Storage.getProfile());
+  const [timerSessions, setTimerSessions] = useState<TimerSession[]>([]);
+  const [wallet, setWallet] = useState<UserWallet>(Storage.getWallet());
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const savedAssignments = Storage.getAssignments();
     const savedTasks = Storage.getTasks();
+    const savedSessions = Storage.getTimerSessions();
+    const savedWallet = Storage.getWallet();
     setAssignments(savedAssignments);
     setTasks(savedTasks);
+    setTimerSessions(savedSessions);
+    setWallet(savedWallet);
   }, []);
 
   const addAssignment = async (assignment: Omit<Assignment, 'id' | 'createdAt' | 'completed'>) => {
@@ -101,10 +107,50 @@ export const useDeadliner = () => {
     Storage.exportToPDF();
   };
 
+  const addTimerSession = (session: TimerSession) => {
+    const updatedSessions = [...timerSessions, session];
+    setTimerSessions(updatedSessions);
+    Storage.saveTimerSessions(updatedSessions);
+  };
+
+  const addPoints = (points: number) => {
+    const updatedWallet = {
+      ...wallet,
+      totalPoints: wallet.totalPoints + points,
+      sessionsCompleted: wallet.sessionsCompleted + 1,
+      totalStudyTime: wallet.totalStudyTime + (points * 360) // Approximate seconds from points
+    };
+    setWallet(updatedWallet);
+    Storage.saveWallet(updatedWallet);
+  };
+
+  const redeemReward = (tier: RewardTier) => {
+    if (wallet.totalPoints >= tier.points) {
+      const redemption = {
+        id: Date.now().toString(),
+        points: tier.points,
+        amount: tier.amount,
+        redeemedAt: new Date().toISOString()
+      };
+
+      const updatedWallet = {
+        ...wallet,
+        totalPoints: wallet.totalPoints - tier.points,
+        totalEarnings: wallet.totalEarnings + tier.amount,
+        rewardsRedeemed: [...wallet.rewardsRedeemed, redemption]
+      };
+      
+      setWallet(updatedWallet);
+      Storage.saveWallet(updatedWallet);
+    }
+  };
+
   return {
     assignments,
     tasks,
     profile,
+    timerSessions,
+    wallet,
     loading,
     addAssignment,
     completeTask,
@@ -113,6 +159,9 @@ export const useDeadliner = () => {
     getUpcomingTasks,
     getStats,
     updateProfile,
-    exportSchedule
+    exportSchedule,
+    addTimerSession,
+    addPoints,
+    redeemReward
   };
 };
