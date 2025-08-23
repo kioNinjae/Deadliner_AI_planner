@@ -1,69 +1,147 @@
 import { useState, useEffect } from 'react';
 import { Assignment, Task, StudyProfile, DayPlan, TimerSession, UserWallet, RewardTier } from '../types';
-import { AIScheduler } from '../utils/aiScheduler';
-import { Storage } from '../utils/storage';
+import { ApiService } from '../services/api';
+import { Storage } from '../utils/storage'; // Keep for fallback
 
 export const useDeadliner = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [profile, setProfile] = useState<StudyProfile>(Storage.getProfile());
+  const [profile, setProfile] = useState<StudyProfile>({
+    dailyStudyHours: 4,
+    preferredStudyTimes: ['morning', 'evening'],
+    subjects: ['Math', 'Science', 'History', 'English'],
+    studyStyle: 'distributed'
+  });
   const [timerSessions, setTimerSessions] = useState<TimerSession[]>([]);
-  const [wallet, setWallet] = useState<UserWallet>(Storage.getWallet());
+  const [wallet, setWallet] = useState<UserWallet>({
+    totalPoints: 0,
+    totalEarnings: 0,
+    sessionsCompleted: 0,
+    totalStudyTime: 0,
+    rewardsRedeemed: []
+  });
   const [loading, setLoading] = useState(false);
+  const [useBackend, setUseBackend] = useState(true);
 
   useEffect(() => {
-    const savedAssignments = Storage.getAssignments();
-    const savedTasks = Storage.getTasks();
-    const savedSessions = Storage.getTimerSessions();
-    const savedWallet = Storage.getWallet();
-    setAssignments(savedAssignments);
-    setTasks(savedTasks);
-    setTimerSessions(savedSessions);
-    setWallet(savedWallet);
+    loadData();
   }, []);
 
+  const loadData = async () => {
+    try {
+      if (useBackend) {
+        // Try to load from backend
+        const [assignmentsData, tasksData, profileData, sessionsData, walletData] = await Promise.all([
+          ApiService.getAssignments(),
+          ApiService.getTasks(),
+          ApiService.getProfile(),
+          ApiService.getTimerSessions(),
+          ApiService.getWallet()
+        ]);
+        
+        setAssignments(assignmentsData);
+        setTasks(tasksData);
+        setProfile(profileData);
+        setTimerSessions(sessionsData);
+        setWallet(walletData);
+      } else {
+        // Fallback to local storage
+        const savedAssignments = Storage.getAssignments();
+        const savedTasks = Storage.getTasks();
+        const savedSessions = Storage.getTimerSessions();
+        const savedWallet = Storage.getWallet();
+        const savedProfile = Storage.getProfile();
+        
+        setAssignments(savedAssignments);
+        setTasks(savedTasks);
+        setTimerSessions(savedSessions);
+        setWallet(savedWallet);
+        setProfile(savedProfile);
+      }
+    } catch (error) {
+      console.error('Failed to load from backend, using local storage:', error);
+      setUseBackend(false);
+      // Load from local storage as fallback
+      const savedAssignments = Storage.getAssignments();
+      const savedTasks = Storage.getTasks();
+      const savedSessions = Storage.getTimerSessions();
+      const savedWallet = Storage.getWallet();
+      const savedProfile = Storage.getProfile();
+      
+      setAssignments(savedAssignments);
+      setTasks(savedTasks);
+      setTimerSessions(savedSessions);
+      setWallet(savedWallet);
+      setProfile(savedProfile);
+    }
+  };
   const addAssignment = async (assignment: Omit<Assignment, 'id' | 'createdAt' | 'completed'>) => {
     setLoading(true);
-    
-    const newAssignment: Assignment = {
-      ...assignment,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      completed: false
-    };
-
-    const newTasks = AIScheduler.generateTaskBreakdown(newAssignment, profile);
-    
-    const updatedAssignments = [...assignments, newAssignment];
-    const updatedTasks = [...tasks, ...newTasks];
-    
-    setAssignments(updatedAssignments);
-    setTasks(updatedTasks);
-    
-    Storage.saveAssignments(updatedAssignments);
-    Storage.saveTasks(updatedTasks);
-    
+    try {
+      if (useBackend) {
+        await ApiService.createAssignment(assignment);
+        await loadData(); // Reload all data
+      } else {
+        // Fallback to local storage logic
+        const newAssignment: Assignment = {
+          ...assignment,
+          id: Date.now().toString(),
+          createdAt: new Date().toISOString(),
+          completed: false
+        };
+        const updatedAssignments = [...assignments, newAssignment];
+        setAssignments(updatedAssignments);
+        Storage.saveAssignments(updatedAssignments);
+      }
+    } catch (error) {
+      console.error('Error adding assignment:', error);
+    }
     setLoading(false);
   };
 
   const completeTask = (taskId: string) => {
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId ? { ...task, completed: true } : task
-    );
-    setTasks(updatedTasks);
-    Storage.saveTasks(updatedTasks);
+    try {
+      if (useBackend) {
+        ApiService.completeTask(taskId);
+      }
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, completed: true } : task
+      );
+      setTasks(updatedTasks);
+      Storage.saveTasks(updatedTasks);
+    } catch (error) {
+      console.error('Error completing task:', error);
+    }
   };
 
   const rescheduleTask = (taskId: string, newDate: string) => {
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId ? AIScheduler.rescheduleTask(task, newDate) : task
-    );
-    setTasks(updatedTasks);
-    Storage.saveTasks(updatedTasks);
+    try {
+      if (useBackend) {
+        ApiService.rescheduleTask(taskId, newDate);
+      }
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, scheduledDate: newDate, completed: false } : task
+      );
+      setTasks(updatedTasks);
+      Storage.saveTasks(updatedTasks);
+    } catch (error) {
+      console.error('Error rescheduling task:', error);
+    }
   };
 
   const getDailyPlan = (date: string): DayPlan => {
-    return AIScheduler.generateDailyPlan(tasks, date);
+    const dayTasks = tasks.filter(task => task.scheduledDate === date);
+    const totalTime = dayTasks.reduce((sum, task) => sum + task.duration, 0);
+    
+    return {
+      date,
+      tasks: dayTasks.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      }),
+      totalStudyTime: totalTime,
+      completed: dayTasks.every(task => task.completed)
+    };
   };
 
   const getUpcomingTasks = (days: number = 7): Task[] => {
@@ -99,8 +177,15 @@ export const useDeadliner = () => {
   };
 
   const updateProfile = (newProfile: StudyProfile) => {
-    setProfile(newProfile);
-    Storage.saveProfile(newProfile);
+    try {
+      if (useBackend) {
+        ApiService.updateProfile(newProfile);
+      }
+      setProfile(newProfile);
+      Storage.saveProfile(newProfile);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
   };
 
   const exportSchedule = () => {
@@ -108,9 +193,16 @@ export const useDeadliner = () => {
   };
 
   const addTimerSession = (session: TimerSession) => {
-    const updatedSessions = [...timerSessions, session];
-    setTimerSessions(updatedSessions);
-    Storage.saveTimerSessions(updatedSessions);
+    try {
+      if (useBackend) {
+        ApiService.createTimerSession(session);
+      }
+      const updatedSessions = [...timerSessions, session];
+      setTimerSessions(updatedSessions);
+      Storage.saveTimerSessions(updatedSessions);
+    } catch (error) {
+      console.error('Error adding timer session:', error);
+    }
   };
 
   const addPoints = (points: number) => {
@@ -125,26 +217,33 @@ export const useDeadliner = () => {
   };
 
   const redeemReward = (tier: RewardTier) => {
-    if (wallet.totalPoints >= tier.points) {
-      const redemption = {
-        id: Date.now().toString(),
-        points: tier.points,
-        amount: tier.amount,
-        redeemedAt: new Date().toISOString()
-      };
-
-      const updatedWallet = {
-        ...wallet,
-        totalPoints: wallet.totalPoints - tier.points,
-        totalEarnings: wallet.totalEarnings + tier.amount,
-        rewardsRedeemed: [...wallet.rewardsRedeemed, redemption]
-      };
-      
-      setWallet(updatedWallet);
-      Storage.saveWallet(updatedWallet);
+    try {
+      if (wallet.totalPoints >= tier.points) {
+        if (useBackend) {
+          ApiService.redeemReward(tier.points, tier.amount);
+        }
+        
+        const redemption = {
+          id: Date.now().toString(),
+          points: tier.points,
+          amount: tier.amount,
+          redeemedAt: new Date().toISOString()
+        };
     }
   };
 
+        const updatedWallet = {
+          ...wallet,
+          totalPoints: wallet.totalPoints - tier.points,
+          totalEarnings: wallet.totalEarnings + tier.amount,
+          rewardsRedeemed: [...wallet.rewardsRedeemed, redemption]
+        };
+        
+        setWallet(updatedWallet);
+        Storage.saveWallet(updatedWallet);
+      }
+    } catch (error) {
+      console.error('Error redeeming reward:', error);
   return {
     assignments,
     tasks,
@@ -162,6 +261,7 @@ export const useDeadliner = () => {
     exportSchedule,
     addTimerSession,
     addPoints,
-    redeemReward
+    redeemReward,
+    useBackend
   };
 };

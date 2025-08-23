@@ -9,6 +9,9 @@ import { SettingsModal } from './components/SettingsModal';
 import { TaskTimer } from './components/TaskTimer';
 import { TaskSelector } from './components/TaskSelector';
 import { WalletDashboard } from './components/WalletDashboard';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { NotificationToast } from './components/NotificationToast';
+import { ConnectionStatus } from './components/ConnectionStatus';
 import { useDeadliner } from './hooks/useDeadliner';
 import { Task } from './types';
 
@@ -16,6 +19,12 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>();
   const [showCelebration, setShowCelebration] = useState(false);
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: 'success' | 'error' | 'info';
+    isVisible: boolean;
+  }>({ message: '', type: 'info', isVisible: false });
+  
   const {
     assignments,
     tasks,
@@ -33,7 +42,8 @@ function App() {
     exportSchedule,
     addTimerSession,
     addPoints,
-    redeemReward
+    redeemReward,
+    useBackend
   } = useDeadliner();
 
   const stats = getStats();
@@ -43,8 +53,26 @@ function App() {
     addTimerSession(session);
     if (session.pointsEarned > 0) {
       setShowCelebration(true);
+      showNotification(`🎉 Earned ${session.pointsEarned} points!`, 'success');
       setTimeout(() => setShowCelebration(false), 3000);
     }
+  };
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotification({ message, type, isVisible: true });
+  };
+
+  const handleAddAssignment = async (assignment: any) => {
+    try {
+      await addAssignment(assignment);
+      showNotification('✅ Assignment created successfully!', 'success');
+    } catch (error) {
+      showNotification('❌ Failed to create assignment', 'error');
+    }
+  };
+
+  const toggleBackend = () => {
+    window.location.reload(); // Reload to switch between backend/local
   };
 
   const handlePointsEarned = (points: number) => {
@@ -59,10 +87,16 @@ function App() {
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeInUp">
+        {loading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <LoadingSpinner size="lg" />
+          </div>
+        )}
+        
         <StatsCard stats={stats} />
         
         <AddAssignmentForm 
-          onAdd={addAssignment}
+          onAdd={handleAddAssignment}
           loading={loading}
         />
         
@@ -100,101 +134,4 @@ function App() {
           />
         </div>
 
-        {assignments.length > 0 && (
-          <div className="mt-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-fadeInUp hover:shadow-lg transition-all duration-300">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="w-2 h-2 bg-purple-500 rounded-full mr-3 animate-pulse"></span>
-                Your Assignments ({assignments.length})
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {assignments.map((assignment, index) => (
-                  <div
-                    key={assignment.id}
-                    className="p-4 border border-gray-200 rounded-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 group animate-fadeInUp"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors duration-300">
-                        {assignment.title}
-                      </h4>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        assignment.priority === 'high' 
-                          ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 shadow-sm'
-                          : assignment.priority === 'medium'
-                          ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 shadow-sm'
-                          : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 shadow-sm'
-                      }`}>
-                        {assignment.priority}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2 group-hover:text-gray-700 transition-colors duration-300">{assignment.subject}</p>
-                    <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
-                      Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
-                      Est. {assignment.estimatedHours}h
-                    </p>
-                    <div className="mt-3 h-1 bg-gray-100 rounded-full overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className={`h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r ${
-                        assignment.priority === 'high' ? 'from-red-400 to-red-600' :
-                        assignment.priority === 'medium' ? 'from-yellow-400 to-yellow-600' :
-                        'from-green-400 to-green-600'
-                      } w-2/3`}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {assignments.length === 0 && (
-          <div className="mt-8 text-center py-12 animate-fadeInUp">
-            <div className="max-w-md mx-auto">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 floating shadow-lg">
-                <Target className="w-10 h-10 text-white animate-pulse-gentle" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2 hover:text-blue-600 transition-colors duration-300">
-                Welcome to Deadliner AI! 🎯
-              </h3>
-              <p className="text-gray-600 mb-6 hover:text-gray-700 transition-colors duration-300">
-                Start by adding your first assignment, exam, or project above. 
-                Our AI will automatically break it down into manageable tasks and 
-                create a personalized study schedule for you.
-              </p>
-              <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg p-4 border border-blue-200 shadow-sm hover:shadow-md transition-all duration-300">
-                <p className="text-sm text-blue-800 hover:text-blue-900 transition-colors duration-300">
-                  <strong>Pro tip:</strong> Be realistic with your estimated hours. 
-                  The AI uses this to create an optimal schedule that prevents last-minute cramming!
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        profile={profile}
-        onUpdateProfile={updateProfile}
-      />
-
-      {/* Celebration Modal */}
-      {showCelebration && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full shadow-2xl animate-bounce-gentle transform scale-110">
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl animate-spin">🎉</span>
-              <span className="font-bold text-lg">Points Earned!</span>
-              <span className="text-2xl animate-spin">🎉</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default App;
+        {assignments
